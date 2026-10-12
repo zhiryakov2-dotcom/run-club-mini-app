@@ -1,6 +1,1 @@
-body{font-family:Arial;background:#f5f6f8;margin:0;text-align:center;padding-bottom:80px}
-header{padding:25px;font-size:28px}
-.card{background:white;border-radius:20px;padding:20px;margin:20px auto;max-width:360px;box-shadow:0 5px 20px #ddd}
-button{border:0;border-radius:12px;padding:12px 25px;background:#111;color:#fff;cursor:pointer}
-nav{position:fixed;bottom:0;left:0;right:0;background:white;padding:10px;display:flex;justify-content:space-around}
-nav button{background:white;color:#111;font-size:12px;padding:5px}
+body{font-family:Arial;background:#f5f6f8;margin:0;text-align:center;padding-bottom:80px}.card{background:#fff;border-radius:20px;padding:20px;margin:20px auto;max-width:360px;box-shadow:0 5px 20px #ddd}button{border:0;border-radius:12px;padding:12px;background:#111;color:#fff;cursor:pointer}nav{position:fixed;bottom:0;left:0;right:0;background:white;padding:10px;display:flex;justify-content:space-around}nav button{background:white;color:#111;font-size:12px}

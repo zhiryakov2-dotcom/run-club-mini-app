@@ -9,23 +9,16 @@
 <body>
 <header>🏃 <b>RUN CLUB</b><p>Кабинет бегового клуба</p></header>
 
-<section id="content">
-<div class="card">
-<h2>🔥 Ближайшая тренировка</h2>
-<h3>ОФП + бег</h3>
-<p>Среда · 19:00</p>
-<p>📍 Центральный парк</p>
-<button onclick="signup('ОФП + бег')">Я участвую</button>
-</div>
-</section>
+<main id="content"></main>
 
-<nav>
-<button onclick="show('home')">🏠<br>Главная</button>
-<button onclick="show('calendar')">📅<br>Календарь</button>
-<button onclick="show('training')">🏃<br>Тренировки</button>
-<button onclick="show('news')">📌<br>Объявления</button>
-<button onclick="show('users')">👥<br>Участники</button>
+<nav id="menu">
+<button data-page="home">🏠<br>Главная</button>
+<button data-page="calendar">📅<br>Календарь</button>
+<button data-page="training">🏃<br>Тренировки</button>
+<button data-page="news">📌<br>Объявления</button>
+<button data-page="users">👥<br>Участники</button>
 </nav>
+
 <script src="script.js"></script>
 </body>
 </html>
