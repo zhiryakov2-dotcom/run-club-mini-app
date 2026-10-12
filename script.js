@@ -1,1 +1,2 @@
-console.log('RUN CLUB v2');
+
+console.log('RUN CLUB Mini App loaded');
