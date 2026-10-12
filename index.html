@@ -1,48 +1,12 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>RUN CLUB</title>
-<link rel="stylesheet" href="style.css">
-</head>
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RUN CLUB</title><link rel="stylesheet" href="style.css"></head>
 <body>
-<header>
-<div class="logo">🏃 RUN CLUB</div>
-<p>Кабинет бегового клуба</p>
-</header>
-
-<main>
-<div class="card">
-<h3>🔥 Ближайшая тренировка</h3>
-<h2>ОФП + бег</h2>
-<p>Среда · 19:00</p>
-<p>📍 Центральный парк</p>
-<button onclick="join('ОФП + бег')">Я участвую</button>
+<div class="app">
+<h1>🏃 RUN CLUB</h1>
+<div class="card"><h2>🔥 Ближайшая тренировка</h2><p id="event">Загрузка...</p><button onclick="join()">Я участвую</button></div>
+<div class="card"><h2>📢 Объявления</h2><div id="news">Загрузка...</div></div>
+<div class="card"><h2>👥 Участники</h2><div id="members">Загрузка...</div></div>
+<nav>🏠 Главная　📅 Календарь　🏃 Тренировки　📌 Новости　👥 Люди</nav>
 </div>
-
-<div class="card">
-<h3>🏆 Следующий забег</h3>
-<h2>Московский полумарафон</h2>
-<p>15 октября · 10 км</p>
-<button onclick="join('Московский полумарафон')">Участвую</button>
-</div>
-
-<div class="card">
-<h3>📢 Новости клуба</h3>
-<p>• Новая тренировка добавлена</p>
-<p>• Ищем команду на эстафету</p>
-</div>
-</main>
-
-<nav>
-<button onclick="alert('Главная')">🏠<br>Главная</button>
-<button onclick="alert('Календарь')">📅<br>Календарь</button>
-<button onclick="alert('Тренировки')">🏃<br>Тренировки</button>
-<button onclick="alert('Объявления')">📌<br>Объявления</button>
-<button onclick="alert('Участники')">👥<br>Участники</button>
-</nav>
-
 <script src="script.js"></script>
-</body>
-</html>
+</body></html>
