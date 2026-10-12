@@ -1,12 +1,31 @@
 <!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RUN CLUB</title><link rel="stylesheet" href="style.css"></head>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RUN CLUB</title>
+<link rel="stylesheet" href="style.css">
+</head>
 <body>
-<div class="app">
-<h1>🏃 RUN CLUB</h1>
-<div class="card"><h2>🔥 Ближайшая тренировка</h2><p id="event">Загрузка...</p><button onclick="join()">Я участвую</button></div>
-<div class="card"><h2>📢 Объявления</h2><div id="news">Загрузка...</div></div>
-<div class="card"><h2>👥 Участники</h2><div id="members">Загрузка...</div></div>
-<nav>🏠 Главная　📅 Календарь　🏃 Тренировки　📌 Новости　👥 Люди</nav>
+<header>🏃 <b>RUN CLUB</b><p>Кабинет бегового клуба</p></header>
+
+<section id="content">
+<div class="card">
+<h2>🔥 Ближайшая тренировка</h2>
+<h3>ОФП + бег</h3>
+<p>Среда · 19:00</p>
+<p>📍 Центральный парк</p>
+<button onclick="signup('ОФП + бег')">Я участвую</button>
 </div>
+</section>
+
+<nav>
+<button onclick="show('home')">🏠<br>Главная</button>
+<button onclick="show('calendar')">📅<br>Календарь</button>
+<button onclick="show('training')">🏃<br>Тренировки</button>
+<button onclick="show('news')">📌<br>Объявления</button>
+<button onclick="show('users')">👥<br>Участники</button>
+</nav>
 <script src="script.js"></script>
-</body></html>
+</body>
+</html>

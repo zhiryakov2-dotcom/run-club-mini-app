@@ -1,0 +1,1 @@
+RUN CLUB v4. Кнопки разделены. Следующий этап: Google Apps Script + таблица.
