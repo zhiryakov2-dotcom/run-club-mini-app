@@ -1,11 +1,1 @@
-*{box-sizing:border-box}
-body{margin:0;background:#f5f6f7;font-family:Arial,sans-serif;color:#111}
-.app{max-width:430px;margin:auto;padding:20px;padding-bottom:90px}
-header{margin-bottom:20px}
-header h1{margin-bottom:5px}
-.card{background:white;border-radius:22px;padding:20px;margin-bottom:16px;box-shadow:0 8px 25px rgba(0,0,0,.06)}
-button{border:0;border-radius:14px;padding:14px 20px;background:#111;color:white;font-size:16px;width:100%}
-nav{position:fixed;bottom:0;left:0;right:0;background:white;display:flex;justify-content:space-around;padding:12px 5px;border-top:1px solid #ddd}
-nav div{text-align:center;font-size:20px}
-nav span{display:block;font-size:11px;margin-top:4px}
-h2{font-size:18px}
+body{font-family:Arial;background:#f5f5f5}
