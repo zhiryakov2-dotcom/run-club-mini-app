@@ -176,9 +176,30 @@ function show(page) {
       + '<p class="muted">Каждый выбирает группу сам — без делений на «элиту».</p>';
   }
   else if (page === 'news') {
-    content.innerHTML = '<h2>📌 Объявления</h2>' + (clubData.ads && clubData.ads.length ? clubData.ads.map(a => '<div class="card"><b>'
+    const user = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : {};
+    const authorName = esc(user.first_name || '');
+    let html = '<h2>📌 Объявления</h2>'
+      + '<div class="card"><button id="showAddAdBtn" class="green">+ Добавить объявление</button></div>'
+      + '<div id="addAdForm" style="display:none;" class="card">'
+      + '<h3>Новое объявление</h3>'
+      + '<input id="adTitle" placeholder="Заголовок (напр. Ищу компанию)">'
+      + '<input id="adText" placeholder="Текст объявления">'
+      + '<input id="adCategory" placeholder="Категория (напр. Общее)">'
+      + '<input id="adAuthor" placeholder="Автор" value="' + authorName + '">'
+      + '<input id="adSecret" type="password" placeholder="Пароль администратора">'
+      + '<button id="saveAdBtn">Опубликовать</button>'
+      + '</div>';
+
+    html += (clubData.ads && clubData.ads.length ? clubData.ads.map(a => '<div class="card"><b>'
       + esc(a['Заголовок'] || '') + '</b>' + (a['Автор'] ? ' (' + esc(a['Автор']) + ')' : '') + '<br><p>'
       + esc(a['Текст'] || '') + '</p></div>').join('') : '<div class="card"><p>Объявлений пока нет</p></div>');
+    content.innerHTML = html;
+
+    document.getElementById('showAddAdBtn').onclick = () => {
+      const f = document.getElementById('addAdForm');
+      f.style.display = f.style.display === 'none' ? 'block' : 'none';
+    };
+    document.getElementById('saveAdBtn').onclick = createAd;
   }
   else if (page === 'relays') {
     const relays = clubData.relays || [];
@@ -192,7 +213,22 @@ function show(page) {
       + '</div>').join('') : '<div class="card"><p>Эстафет пока нет — добавьте лист «Эстафеты» в таблицу.</p></div>');
   }
   else if (page === 'users') {
-    content.innerHTML = '<h2>👥 Участники</h2>' + (clubData.members && clubData.members.length ? clubData.members.map(m => '<div class="card" style="text-align:left;">'
+    const user = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : {};
+    const userName = esc(user.first_name || '');
+    let html = '<h2>👥 Участники</h2>'
+      + '<div class="card"><button id="showJoinClubBtn" class="green">+ Вступить в клуб</button></div>'
+      + '<div id="joinClubForm" style="display:none;" class="card">'
+      + '<h3>Вступить в клуб</h3>'
+      + '<input id="memberName" placeholder="Имя" value="' + userName + '">'
+      + '<input id="memberTempo" placeholder="Темп (напр. 5:30 /км)">'
+      + '<input id="memberGoal" placeholder="Цель (напр. 10 км)">'
+      + '<input id="memberDistances" placeholder="Дистанции (напр. 5 км, 10 км)">'
+      + '<input id="memberExperience" placeholder="Стаж бега (напр. 2 года)">'
+      + '<input id="memberLikes" placeholder="Люблю (напр. длительные)">'
+      + '<button id="saveMemberBtn">Вступить</button>'
+      + '</div>';
+
+    html += (clubData.members && clubData.members.length ? clubData.members.map(m => '<div class="card" style="text-align:left;">'
       + '<b>' + esc(m['Имя'] || '') + '</b><br>'
       + '<small>Темп: ' + esc(m['Темп'] || '-') + ' | Цель: ' + esc(m['Цель'] || '-') + '</small>'
       + (m['Стаж бега'] || m['Стаж'] ? '<br><small>Бегаю: ' + esc(m['Стаж бега'] || m['Стаж']) + '</small>' : '')
@@ -200,6 +236,13 @@ function show(page) {
       + (m['Дистанции'] ? '<br><small>Дистанции: ' + esc(m['Дистанции']) + '</small>' : '')
       + (m['Люблю'] ? '<br><small>Люблю: ' + esc(m['Люблю']) + '</small>' : '')
       + '</div>').join('') : '<div class="card"><p>Список пуст</p></div>');
+    content.innerHTML = html;
+
+    document.getElementById('showJoinClubBtn').onclick = () => {
+      const f = document.getElementById('joinClubForm');
+      f.style.display = f.style.display === 'none' ? 'block' : 'none';
+    };
+    document.getElementById('saveMemberBtn').onclick = joinClub;
   }
 
   content.querySelectorAll('.joinBtn').forEach(btn => {
@@ -243,6 +286,51 @@ async function createEvent() {
     setTimeout(loadData, 1500);
   } catch (err) {
     alert('Ошибка при добавлении события');
+  }
+}
+
+async function createAd() {
+  const title = document.getElementById('adTitle').value.trim();
+  const text = document.getElementById('adText').value.trim();
+  const category = document.getElementById('adCategory').value.trim();
+  const author = document.getElementById('adAuthor').value.trim();
+  const secret = document.getElementById('adSecret').value;
+
+  if (!title || !text || !secret) {
+    alert('Заполните заголовок, текст и пароль!');
+    return;
+  }
+  if (!API_CONFIGURED) { alert('Приложение не подключено к таблице. Вставьте URL в script.js.'); return; }
+
+  try {
+    await postPayload({ action: 'addAd', title, text, category, author, secret });
+    alert('Запрос отправлен! Обновляем...');
+    setTimeout(loadData, 1500);
+  } catch (err) {
+    alert('Ошибка при добавлении объявления');
+  }
+}
+
+async function joinClub() {
+  const name = document.getElementById('memberName').value.trim();
+  const tempo = document.getElementById('memberTempo').value.trim();
+  const goal = document.getElementById('memberGoal').value.trim();
+  const distances = document.getElementById('memberDistances').value.trim();
+  const experience = document.getElementById('memberExperience').value.trim();
+  const likes = document.getElementById('memberLikes').value.trim();
+
+  if (!name) {
+    alert('Укажите имя!');
+    return;
+  }
+  if (!API_CONFIGURED) { alert('Приложение не подключено к таблице. Вставьте URL в script.js.'); return; }
+
+  try {
+    await postPayload({ action: 'addMember', name, tempo, goal, distances, experience, likes });
+    alert('Запрос отправлен! Обновляем...');
+    setTimeout(loadData, 1500);
+  } catch (err) {
+    alert('Ошибка. Попробуйте ещё раз.');
   }
 }
 

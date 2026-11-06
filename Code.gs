@@ -140,6 +140,7 @@ function doPost(e) {
     if (data.action === 'addEvent') return json_(addEvent_(data));
     if (data.action === 'join') return json_(join_(data));
     if (data.action === 'addAd') return json_(addAd_(data));
+    if (data.action === 'addMember') return json_(addMember_(data));
     return json_({ ok: false, error: 'Неизвестное действие: ' + data.action });
   } catch (err) {
     return json_({ ok: false, error: String(err) });
@@ -187,5 +188,23 @@ function addAd_(d) {
   const sheet = ensureSheet_(SHEETS.ads, HEADERS.ads);
   sheet.appendRow([nextId_(SHEETS.ads), d.category || 'Общее', d.title, d.author || '',
     d.text, Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd.MM.yyyy'), 'Активно']);
+  return { ok: true };
+}
+
+function addMember_(d) {
+  if (!d.name) return { ok: false, error: 'Нужно имя' };
+  const sheet = ensureSheet_(SHEETS.members, HEADERS.members);
+  const name = String(d.name).trim();
+
+  // Не добавляем одного и того же человека дважды.
+  const rows = readSheet_(SHEETS.members);
+  const exists = rows.some(function (r) {
+    return String(r['Имя'] || '').trim().toLowerCase() === name.toLowerCase();
+  });
+  if (exists) return { ok: true, already: true };
+
+  const year = new Date().getFullYear();
+  sheet.appendRow([nextId_(SHEETS.members), name, '', year,
+    d.experience || '', d.distances || '', d.goal || '', d.tempo || '', d.likes || '']);
   return { ok: true };
 }
