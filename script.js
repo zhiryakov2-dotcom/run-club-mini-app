@@ -15,8 +15,7 @@ async function init() {
     clubData = await res.json();
     show('home');
   } catch (err) {
-    content.innerHTML = '<div class="card"><p>Ошибка связи с таблицей</p></div>';
-    console.error(err);
+    content.innerHTML = '<div class="card"><p>Ошибка загрузки</p></div>';
   }
 }
 
@@ -27,7 +26,7 @@ function show(page) {
   if (page === 'home') {
     const event = (clubData.events && clubData.events.length > 0) ? clubData.events[0] : null;
     if (!event) {
-      content.innerHTML = '<div class="card"><p>Нет запланированных тренировок</p></div>';
+      content.innerHTML = '<div class="card"><p>Тренировок пока нет</p></div>';
       return;
     }
     content.innerHTML = `
@@ -42,54 +41,98 @@ function show(page) {
   } 
   else if (page === 'calendar') {
     const items = clubData.events || [];
-    content.innerHTML = '<h2>📅 Календарь</h2>' + (items.length ? items.map(e => `
+    let html = `<h2>📅 Календарь</h2>
       <div class="card">
-        <b>${e['Название'] || 'Событие'}</b> (${e['Дата'] || ''})<br>
-        <p style="margin:5px 0;">${e['День недели'] || ''} в ${e['Время'] || ''} — ${e['Место'] || ''}</p>
+        <button id="showAddFormBtn" style="background:#2ea44f;">+ Добавить тренировку</button>
+      </div>
+      <div id="addEventForm" style="display:none;" class="card">
+        <h3>Новая тренировка</h3>
+        <input id="evTitle" placeholder="Название (напр. ОФП)" style="width:90%;padding:8px;margin:5px 0;"><br>
+        <input id="evDate" placeholder="Дата (напр. 15.10.2026)" style="width:90%;padding:8px;margin:5px 0;"><br>
+        <input id="evDay" placeholder="День (напр. Среда)" style="width:90%;padding:8px;margin:5px 0;"><br>
+        <input id="evTime" placeholder="Время (напр. 19:00)" style="width:90%;padding:8px;margin:5px 0;"><br>
+        <input id="evPlace" placeholder="Место (напр. Парк)" style="width:90%;padding:8px;margin:5px 0;"><br>
+        <input id="evSecret" type="password" placeholder="Пароль администратора" style="width:90%;padding:8px;margin:5px 0;"><br>
+        <button id="saveEventBtn" style="margin-top:10px;">Опубликовать</button>
+      </div>`;
+
+    html += items.map(e => `
+      <div class="card">
+        <b>${e['Название']}</b> (${e['Дата']})<br>
+        <p style="margin:5px 0;">${e['День недели']} в ${e['Время']} — ${e['Место']}</p>
         <small>${e['Описание'] || ''}</small>
-      </div>`).join('') : '<div class="card"><p>Событий пока нет</p></div>');
+      </div>`).join('');
+
+    content.innerHTML = html;
+
+    document.getElementById('showAddFormBtn').onclick = () => {
+      const f = document.getElementById('addEventForm');
+      f.style.display = f.style.display === 'none' ? 'block' : 'none';
+    };
+
+    document.getElementById('saveEventBtn').onclick = createEvent;
   }
   else if (page === 'training') {
     content.innerHTML = `
-      <h2>🏃 Тренировки</h2>
-      <div class="card"><h3>Группа 1: Комфортный бег</h3><p>Дистанция: 5–7 км<br>Темп: 6:00–6:30 мин/км</p></div>
-      <div class="card"><h3>Группа 2: Средний темп</h3><p>Дистанция: 8–12 км<br>Темп: 5:00–5:30 мин/км</p></div>
-      <div class="card"><h3>Группа 3: Подготовка к стартам</h3><p>Интервалы, темповые отрезки</p></div>`;
+      <h2>🏃 Группы</h2>
+      <div class="card"><h3>Группа 1: Комфортный бег</h3><p>5–7 км (6:00–6:30 мин/км)</p></div>
+      <div class="card"><h3>Группа 2: Средний темп</h3><p>8–12 км (5:00–5:30 мин/км)</p></div>
+      <div class="card"><h3>Группа 3: Темповые</h3><p>Интервалы, подготовка к стартам</p></div>`;
   }
   else if (page === 'news') {
-    const items = clubData.ads || [];
-    content.innerHTML = '<h2>📌 Объявления</h2>' + (items.length ? items.map(a => `
+    content.innerHTML = '<h2>📌 Объявления</h2>' + clubData.ads.map(a => `
       <div class="card">
-        <b>${a['Заголовок'] || ''}</b> (${a['Автор'] || 'Аноним'})<br>
-        <p style="margin:8px 0;">${a['Текст'] || ''}</p>
-        <small style="color:#888;">${a['Дата'] || ''}</small>
-      </div>`).join('') : '<div class="card"><p>Объявлений пока нет</p></div>');
+        <b>${a['Заголовок']}</b> (${a['Автор']})<br>
+        <p>${a['Текст']}</p>
+      </div>`).join('');
   }
   else if (page === 'users') {
-    const items = clubData.members || [];
-    content.innerHTML = '<h2>👥 Участники</h2>' + (items.length ? items.map(m => `
-      <div class="card" style="text-align: left;">
-        <b style="font-size: 16px;">${m['Имя'] || 'Участник'}</b><br>
-        <span>🏃 Стаж: ${m['Стаж бега'] || '-'}</span><br>
-        <span>🎯 Цель: ${m['Цель'] || '-'}</span><br>
-        <span>⚡ Темп: ${m['Темп'] || '-'}</span><br>
-        <span>❤️ Люблю: ${m['Люблю'] || '-'}</span>
-      </div>`).join('') : '<div class="card"><p>Список пуст</p></div>');
+    content.innerHTML = '<h2>👥 Участники</h2>' + clubData.members.map(m => `
+      <div class="card" style="text-align:left;">
+        <b>${m['Имя']}</b><br>
+        <small>Темп: ${m['Темп']} | Цель: ${m['Цель']}</small>
+      </div>`).join('');
+  }
+}
+
+async function createEvent() {
+  const title = document.getElementById('evTitle').value;
+  const date = document.getElementById('evDate').value;
+  const dayOfWeek = document.getElementById('evDay').value;
+  const time = document.getElementById('evTime').value;
+  const place = document.getElementById('evPlace').value;
+  const secret = document.getElementById('evSecret').value;
+
+  if (!title || !date || !secret) {
+    alert('Заполните название, дату и пароль!');
+    return;
+  }
+
+  const payload = { action: 'addEvent', title, date, dayOfWeek, time, place, secret };
+
+  try {
+    await fetch(API_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    alert('Запрос отправлен! Обновляем...');
+    setTimeout(init, 1500);
+  } catch (err) {
+    alert('Ошибка при добавлении события');
   }
 }
 
 async function join(eventName) {
   const userName = tg?.initDataUnsafe?.user?.first_name || 'Участник';
-  try {
-    await fetch(API_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      body: JSON.stringify({ action: 'join', user: userName, event: eventName })
-    });
-    alert('Вы записались на тренировку!');
-  } catch (e) {
-    alert('Не удалось записаться. Попробуйте еще раз.');
-  }
+  await fetch(API_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'join', user: userName, event: eventName })
+  });
+  alert('Вы записались на тренировку!');
 }
 
 document.querySelectorAll('#menu button').forEach(btn => {
