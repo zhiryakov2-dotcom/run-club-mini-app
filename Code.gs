@@ -141,6 +141,7 @@ function doPost(e) {
     if (data.action === 'join') return json_(join_(data));
     if (data.action === 'addAd') return json_(addAd_(data));
     if (data.action === 'addMember') return json_(addMember_(data));
+    if (data.action === 'addRelay') return json_(addRelay_(data));
     return json_({ ok: false, error: 'Неизвестное действие: ' + data.action });
   } catch (err) {
     return json_({ ok: false, error: String(err) });
@@ -206,5 +207,16 @@ function addMember_(d) {
   const year = new Date().getFullYear();
   sheet.appendRow([nextId_(SHEETS.members), name, '', year,
     d.experience || '', d.distances || '', d.goal || '', d.tempo || '', d.likes || '']);
+  return { ok: true };
+}
+
+function addRelay_(d) {
+  if (String(d.secret || '') !== ADMIN_PASSWORD) {
+    return { ok: false, error: 'Неверный пароль администратора' };
+  }
+  if (!d.title) return { ok: false, error: 'Нужно название' };
+  const sheet = ensureSheet_(SHEETS.relays, HEADERS.relays);
+  sheet.appendRow([nextId_(SHEETS.relays), d.title, d.year || '',
+    d.team || '', d.members || '', d.date || '', d.result || '', d.photo || '']);
   return { ok: true };
 }

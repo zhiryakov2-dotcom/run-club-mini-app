@@ -96,12 +96,19 @@ async function loadData() {
 function eventCard(e, withJoin) {
   const p = participantsOf(e['Название'] || '');
   const count = p.count ? '<p>👥 Участников: ' + p.count + '</p>' : '';
+  const who = (p.names && p.names.length)
+    ? '<div class="who">' + p.names.map((n, i) => {
+        const name = String(n).trim();
+        const initial = esc(name.charAt(0) || '?').toUpperCase();
+        return '<span class="who-chip"><span class="who-avatar c' + ((i % 5) + 1) + '">' + initial + '</span>' + esc(name) + '</span>';
+      }).join('') + '</div>'
+    : '';
   return '<div class="card">'
     + '<h3>' + esc(e['Название'] || 'Тренировка') + '</h3>'
     + '<p>' + esc(e['День недели'] || '') + (e['Дата'] ? ' · ' + esc(e['Дата']) : '') + (e['Время'] ? ' · ' + esc(e['Время']) : '') + '</p>'
     + (e['Место'] ? '<p>📍 ' + esc(e['Место']) + '</p>' : '')
     + (e['Описание'] ? '<p class="muted">' + esc(e['Описание']) + '</p>' : '')
-    + count
+    + count + who
     + (withJoin ? '<button class="joinBtn" data-event="' + esc(e['Название'] || '') + '">Я участвую</button>' : '')
     + '</div>';
 }
@@ -196,7 +203,22 @@ function show(page) {
   }
   else if (page === 'relays') {
     const relays = clubData.relays || [];
-    content.innerHTML = '<h2>🏆 Эстафеты</h2>' + (relays.length ? relays.map(r => '<div class="card" style="text-align:left;">'
+    let html = '<h2>🏆 Эстафеты</h2>'
+      + '<div class="card"><button id="showAddRelayBtn" class="green">+ Добавить эстафету</button></div>'
+      + '<div id="addRelayForm" style="display:none;" class="card">'
+      + '<h3>Новая эстафета</h3>'
+      + '<input id="relayTitle" placeholder="Название (напр. Московская эстафета)">'
+      + '<input id="relayYear" placeholder="Год (напр. 2027)">'
+      + '<input id="relayTeam" placeholder="Команда (напр. Команда №1)">'
+      + '<input id="relayMembers" placeholder="Участники (напр. Иван, Сергей, Алексей)">'
+      + '<input id="relayDate" placeholder="Дата (напр. 15.05.2027)">'
+      + '<input id="relayResult" placeholder="Результат (напр. 3:42:10)">'
+      + '<input id="relayPhoto" placeholder="Фото (ссылка, необязательно)">'
+      + '<input id="relaySecret" type="password" placeholder="Пароль администратора">'
+      + '<button id="saveRelayBtn">Опубликовать</button>'
+      + '</div>';
+
+    html += (relays.length ? relays.map(r => '<div class="card" style="text-align:left;">'
       + '<b>' + esc(r['Название'] || 'Эстафета') + '</b> (' + esc(r['Год'] || '') + ')<br>'
       + '<p>' + esc(r['Команда'] || '') + '</p>'
       + '<p>' + esc(r['Участники'] || '') + '</p>'
@@ -204,6 +226,13 @@ function show(page) {
       + (r['Результат'] ? '<p>⏱ Результат: <b>' + esc(r['Результат']) + '</b></p>' : '')
       + (r['Фото'] ? '<p><a href="' + esc(r['Фото']) + '" target="_blank" rel="noopener">📷 Фото</a></p>' : '')
       + '</div>').join('') : '<div class="card"><p>Эстафет пока нет — добавьте лист «Эстафеты» в таблицу.</p></div>');
+    content.innerHTML = html;
+
+    document.getElementById('showAddRelayBtn').onclick = () => {
+      const f = document.getElementById('addRelayForm');
+      f.style.display = f.style.display === 'none' ? 'block' : 'none';
+    };
+    document.getElementById('saveRelayBtn').onclick = createRelay;
   }
   else if (page === 'users') {
     const user = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : {};
@@ -324,6 +353,31 @@ async function joinClub() {
     setTimeout(loadData, 1500);
   } catch (err) {
     alert('Ошибка. Попробуйте ещё раз.');
+  }
+}
+
+async function createRelay() {
+  const title = document.getElementById('relayTitle').value.trim();
+  const year = document.getElementById('relayYear').value.trim();
+  const team = document.getElementById('relayTeam').value.trim();
+  const members = document.getElementById('relayMembers').value.trim();
+  const date = document.getElementById('relayDate').value.trim();
+  const result = document.getElementById('relayResult').value.trim();
+  const photo = document.getElementById('relayPhoto').value.trim();
+  const secret = document.getElementById('relaySecret').value;
+
+  if (!title || !secret) {
+    alert('Заполните название и пароль!');
+    return;
+  }
+  if (!API_CONFIGURED) { alert('Приложение не подключено к таблице. Вставьте URL в script.js.'); return; }
+
+  try {
+    await postPayload({ action: 'addRelay', title, year, team, members, date, result, photo, secret });
+    alert('Запрос отправлен! Обновляем...');
+    setTimeout(loadData, 1500);
+  } catch (err) {
+    alert('Ошибка при добавлении эстафеты');
   }
 }
 
