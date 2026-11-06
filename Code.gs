@@ -79,6 +79,15 @@ function nextId_(name) {
   return ('00' + (max + 1)).slice(-3);
 }
 
+/** Время и длительности («10:00», «1:00:00») пишем как текст: иначе
+ *  таблица парсит их как дату, и при чтении они превращаются в «30.12.1899».
+ *  Апостроф в начале заставляет Sheets хранить значение текстом,
+ *  сам апостроф в значении не сохраняется и не показывается. */
+function text_(v) {
+  const s = String(v || '');
+  return /^\d{1,2}:\d{2}(:\d{2})?$/.test(s) ? "'" + s : s;
+}
+
 /** Читает лист в массив объектов {Заголовок: значение}. Пустые строки пропускает. */
 function readSheet_(name) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
@@ -91,7 +100,13 @@ function readSheet_(name) {
     const obj = {};
     headers.forEach(function (h, i) {
       let v = row[i];
-      if (v instanceof Date) v = Utilities.formatDate(v, Session.getScriptTimeZone(), 'dd.MM.yyyy');
+      if (v instanceof Date) {
+        // Время («10:00», «1:00:00»), записанное как дата, Sheets хранит
+        // как 30.12.1899 — показываем его как время, а не как дату.
+        v = (v.getFullYear() === 1899)
+          ? Utilities.formatDate(v, Session.getScriptTimeZone(), 'HH:mm:ss')
+          : Utilities.formatDate(v, Session.getScriptTimeZone(), 'dd.MM.yyyy');
+      }
       obj[String(h)] = v === null || v === undefined ? '' : String(v);
     });
     rows.push(obj);
@@ -159,7 +174,7 @@ function addEvent_(d) {
   }
   const sheet = ensureSheet_(SHEETS.events, HEADERS.events);
   sheet.appendRow([nextId_(SHEETS.events), d.title, d.type || 'Тренировка',
-    d.date, d.dayOfWeek || '', d.time || '', d.place || '', d.description || '']);
+    d.date, d.dayOfWeek || '', text_(d.time), d.place || '', d.description || '']);
   return { ok: true };
 }
 
@@ -217,6 +232,6 @@ function addRelay_(d) {
   if (!d.title) return { ok: false, error: 'Нужно название' };
   const sheet = ensureSheet_(SHEETS.relays, HEADERS.relays);
   sheet.appendRow([nextId_(SHEETS.relays), d.title, d.year || '',
-    d.team || '', d.members || '', d.date || '', d.result || '', d.photo || '']);
+    d.team || '', d.members || '', d.date || '', text_(d.result), d.photo || '']);
   return { ok: true };
 }
