@@ -168,13 +168,6 @@ function show(page) {
     };
     document.getElementById('saveEventBtn').onclick = createEvent;
   }
-  else if (page === 'training') {
-    content.innerHTML = '<h2>🏃 Группы</h2>'
-      + '<div class="card"><h3>Группа 1: Комфортный бег</h3><p>5–7 км (6:00–6:30 мин/км)</p></div>'
-      + '<div class="card"><h3>Группа 2: Средний темп</h3><p>8–12 км (5:00–5:30 мин/км)</p></div>'
-      + '<div class="card"><h3>Группа 3: Темповые</h3><p>Интервалы, подготовка к стартам</p></div>'
-      + '<p class="muted">Каждый выбирает группу сам — без делений на «элиту».</p>';
-  }
   else if (page === 'news') {
     const user = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : {};
     const authorName = esc(user.first_name || '');
