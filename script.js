@@ -7,22 +7,18 @@ if (tg) {
   tg.expand();
 }
 
-// Загрузка через JSONP для 100% обхода CORS-ошибок браузера
-function loadDataJSONP() {
+async function loadData() {
   const content = document.getElementById('content');
-  content.innerHTML = '<div class="card"><p>Загрузка данных из таблицы...</p></div>';
+  content.innerHTML = '<div class="card"><p>Загрузка данных...</p></div>';
 
-  window.handleClubData = function(data) {
-    clubData = data;
+  try {
+    const res = await fetch(API_URL);
+    clubData = await res.json();
     show('home');
-  };
-
-  const script = document.createElement('script');
-  script.src = `${API_URL}?callback=handleClubData&nocache=${new Date().getTime()}`;
-  script.onerror = function() {
+  } catch (err) {
+    console.error(err);
     content.innerHTML = '<div class="card"><p>Не удалось подключиться к Google Таблице</p></div>';
-  };
-  document.body.appendChild(script);
+  }
 }
 
 function show(page) {
@@ -30,7 +26,7 @@ function show(page) {
   if (!clubData) return;
 
   if (page === 'home') {
-    const event = (clubData.events && clubData.events.length > 0) ? clubData.events : null;
+    const event = (clubData.events && clubData.events.length > 0) ? clubData.events[0] : null;
     if (!event) {
       content.innerHTML = '<div class="card"><p>Нет запланированных тренировок</p></div>';
       return;
@@ -55,7 +51,7 @@ function show(page) {
         <h3>Новая тренировка</h3>
         <input id="evTitle" placeholder="Название (напр. ОФП)" style="width:90%;padding:8px;margin:5px 0;"><br>
         <input id="evDate" placeholder="Дата (напр. 15.10.2026)" style="width:90%;padding:8px;margin:5px 0;"><br>
-        <input id="evDay" placeholder="День (напр. Среда)" style="width:90%;padding:8px;margin:5px 0;"><br>
+        <input id="evDay" placeholder="День недели (напр. Среда)" style="width:90%;padding:8px;margin:5px 0;"><br>
         <input id="evTime" placeholder="Время (напр. 19:00)" style="width:90%;padding:8px;margin:5px 0;"><br>
         <input id="evPlace" placeholder="Место (напр. Парк)" style="width:90%;padding:8px;margin:5px 0;"><br>
         <input id="evSecret" type="password" placeholder="Пароль администратора" style="width:90%;padding:8px;margin:5px 0;"><br>
@@ -64,8 +60,8 @@ function show(page) {
 
     html += items.map(e => `
       <div class="card">
-        <b>${e['Название']}</b> (${e['Дата']})<br>
-        <p style="margin:5px 0;">${e['День недели']} в ${e['Время']} — ${e['Место']}</p>
+        <b>${e['Название'] || ''}</b> (${e['Дата'] || ''})<br>
+        <p style="margin:5px 0;">${e['День недели'] || ''} в ${e['Время'] || ''} — ${e['Место'] || ''}</p>
         <small>${e['Описание'] || ''}</small>
       </div>`).join('');
 
@@ -88,15 +84,15 @@ function show(page) {
   else if (page === 'news') {
     content.innerHTML = '<h2>📌 Объявления</h2>' + (clubData.ads && clubData.ads.length ? clubData.ads.map(a => `
       <div class="card">
-        <b>${a['Заголовок']}</b> (${a['Автор']})<br>
-        <p>${a['Текст']}</p>
+        <b>${a['Заголовок'] || ''}</b> (${a['Автор'] || ''})<br>
+        <p>${a['Текст'] || ''}</p>
       </div>`).join('') : '<div class="card"><p>Объявлений пока нет</p></div>');
   }
   else if (page === 'users') {
     content.innerHTML = '<h2>👥 Участники</h2>' + (clubData.members && clubData.members.length ? clubData.members.map(m => `
       <div class="card" style="text-align:left;">
-        <b>${m['Имя']}</b><br>
-        <small>Темп: ${m['Темп']} | Цель: ${m['Цель']}</small>
+        <b>${m['Имя'] || ''}</b><br>
+        <small>Темп: ${m['Темп'] || '-'} | Цель: ${m['Цель'] || '-'}</small>
       </div>`).join('') : '<div class="card"><p>Список пуст</p></div>');
   }
 }
@@ -124,7 +120,7 @@ async function createEvent() {
       body: JSON.stringify(payload)
     });
     alert('Запрос отправлен! Обновляем...');
-    setTimeout(loadDataJSONP, 1500);
+    setTimeout(loadData, 1500);
   } catch (err) {
     alert('Ошибка при добавлении события');
   }
@@ -145,4 +141,4 @@ document.querySelectorAll('#menu button').forEach(btn => {
   btn.addEventListener('click', () => show(btn.dataset.page));
 });
 
-loadDataJSONP();
+loadData();
