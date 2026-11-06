@@ -7,16 +7,22 @@ if (tg) {
   tg.expand();
 }
 
-async function init() {
+// Загрузка через JSONP для 100% обхода CORS-ошибок браузера
+function loadDataJSONP() {
   const content = document.getElementById('content');
-  content.innerHTML = '<div class="card"><p>Загрузка данных...</p></div>';
-  try {
-    const res = await fetch(API_URL);
-    clubData = await res.json();
+  content.innerHTML = '<div class="card"><p>Загрузка данных из таблицы...</p></div>';
+
+  window.handleClubData = function(data) {
+    clubData = data;
     show('home');
-  } catch (err) {
-    content.innerHTML = '<div class="card"><p>Ошибка загрузки</p></div>';
-  }
+  };
+
+  const script = document.createElement('script');
+  script.src = `${API_URL}?callback=handleClubData&nocache=${new Date().getTime()}`;
+  script.onerror = function() {
+    content.innerHTML = '<div class="card"><p>Не удалось подключиться к Google Таблице</p></div>';
+  };
+  document.body.appendChild(script);
 }
 
 function show(page) {
@@ -24,9 +30,9 @@ function show(page) {
   if (!clubData) return;
 
   if (page === 'home') {
-    const event = (clubData.events && clubData.events.length > 0) ? clubData.events[0] : null;
+    const event = (clubData.events && clubData.events.length > 0) ? clubData.events : null;
     if (!event) {
-      content.innerHTML = '<div class="card"><p>Тренировок пока нет</p></div>';
+      content.innerHTML = '<div class="card"><p>Нет запланированных тренировок</p></div>';
       return;
     }
     content.innerHTML = `
@@ -80,18 +86,18 @@ function show(page) {
       <div class="card"><h3>Группа 3: Темповые</h3><p>Интервалы, подготовка к стартам</p></div>`;
   }
   else if (page === 'news') {
-    content.innerHTML = '<h2>📌 Объявления</h2>' + clubData.ads.map(a => `
+    content.innerHTML = '<h2>📌 Объявления</h2>' + (clubData.ads && clubData.ads.length ? clubData.ads.map(a => `
       <div class="card">
         <b>${a['Заголовок']}</b> (${a['Автор']})<br>
         <p>${a['Текст']}</p>
-      </div>`).join('');
+      </div>`).join('') : '<div class="card"><p>Объявлений пока нет</p></div>');
   }
   else if (page === 'users') {
-    content.innerHTML = '<h2>👥 Участники</h2>' + clubData.members.map(m => `
+    content.innerHTML = '<h2>👥 Участники</h2>' + (clubData.members && clubData.members.length ? clubData.members.map(m => `
       <div class="card" style="text-align:left;">
         <b>${m['Имя']}</b><br>
         <small>Темп: ${m['Темп']} | Цель: ${m['Цель']}</small>
-      </div>`).join('');
+      </div>`).join('') : '<div class="card"><p>Список пуст</p></div>');
   }
 }
 
@@ -118,7 +124,7 @@ async function createEvent() {
       body: JSON.stringify(payload)
     });
     alert('Запрос отправлен! Обновляем...');
-    setTimeout(init, 1500);
+    setTimeout(loadDataJSONP, 1500);
   } catch (err) {
     alert('Ошибка при добавлении события');
   }
@@ -139,4 +145,4 @@ document.querySelectorAll('#menu button').forEach(btn => {
   btn.addEventListener('click', () => show(btn.dataset.page));
 });
 
-init();
+loadDataJSONP();
