@@ -145,7 +145,7 @@ function doGet(e) {
   }
 }
 
-/** POST: добавление тренировки (с паролем) и запись на тренировку. */
+/** POST: добавление/удаление (с паролем админа) и запись на тренировку. */
 function doPost(e) {
   const lock = LockService.getScriptLock();
   try {
@@ -155,6 +155,7 @@ function doPost(e) {
     if (data.action === 'addEvent') return json_(addEvent_(data));
     if (data.action === 'join') return json_(join_(data));
     if (data.action === 'addAd') return json_(addAd_(data));
+    if (data.action === 'deleteAd') return json_(deleteAd_(data));
     if (data.action === 'addMember') return json_(addMember_(data));
     if (data.action === 'addRelay') return json_(addRelay_(data));
     return json_({ ok: false, error: 'Неизвестное действие: ' + data.action });
@@ -205,6 +206,26 @@ function addAd_(d) {
   sheet.appendRow([nextId_(SHEETS.ads), d.category || 'Общее', d.title, d.author || '',
     d.text, Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd.MM.yyyy'), 'Активно']);
   return { ok: true };
+}
+
+/** Удаляет объявление по ID (с паролем админа). Номер строки ищется
+ *  по колонке ID: в листе могут быть пустые строки, поэтому номер
+ *  строки в таблице и порядковый номер в readSheet_() не совпадают. */
+function deleteAd_(d) {
+  if (String(d.secret || '') !== ADMIN_PASSWORD) {
+    return { ok: false, error: 'Неверный пароль администратора' };
+  }
+  if (!d.id) return { ok: false, error: 'Не указан ID объявления' };
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEETS.ads);
+  if (!sheet || sheet.getLastRow() < 2) return { ok: false, error: 'Объявление не найдено' };
+  const ids = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
+  for (let i = 0; i < ids.length; i++) {
+    if (String(ids[i][0]) === String(d.id)) {
+      sheet.deleteRow(i + 2);
+      return { ok: true };
+    }
+  }
+  return { ok: false, error: 'Объявление не найдено' };
 }
 
 function addMember_(d) {

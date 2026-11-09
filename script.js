@@ -14,6 +14,8 @@
       не записывает одного человека дважды. Счётчик участников
       на главной берётся из таблицы «Записи».
    5. Все данные из таблицы экранируются перед вставкой в HTML.
+   6. Объявления показываются новые сверху, у каждого есть кнопка
+      удаления (с паролем администратора, как при публикации).
 */
 
 // !!! ВСТАВЬТЕ СЮДА URL развёрнутого веб-приложения из Apps Script:
@@ -53,6 +55,19 @@ function sortedEvents() {
     if (db) return 1;
     return 0;
   });
+}
+
+// Объявления — новые сверху: сначала по дате (свежие раньше),
+// а внутри одной даты — позже добавленные раньше.
+function sortedAds() {
+  const items = (clubData && clubData.ads) || [];
+  return items.map((a, i) => ({ a: a, i: i })).sort((x, y) => {
+    const dx = parseDate(x.a['Дата']), dy = parseDate(y.a['Дата']);
+    if (dx && dy && dx - dy !== 0) return dy - dx;
+    if (dx && !dy) return -1;
+    if (!dx && dy) return 1;
+    return y.i - x.i;
+  }).map(o => o.a);
 }
 
 function participantsOf(eventName) {
@@ -190,9 +205,14 @@ function show(page) {
       + '<button id="saveAdBtn">Опубликовать</button>'
       + '</div>';
 
-    html += (clubData.ads && clubData.ads.length ? clubData.ads.map(a => '<div class="card"><b>'
+    const ads = sortedAds();
+    html += (ads.length ? ads.map(a => '<div class="card"><b>'
       + esc(a['Заголовок'] || '') + '</b>' + (a['Автор'] ? ' (' + esc(a['Автор']) + ')' : '') + '<br><p>'
-      + esc(a['Текст'] || '') + '</p></div>').join('') : '<div class="card"><p>Объявлений пока нет</p></div>');
+      + esc(a['Текст'] || '') + '</p>'
+      + (a['Дата'] ? '<p class="muted">' + esc(a['Дата']) + '</p>' : '')
+      + '<button class="delAdBtn danger" data-ad-id="' + esc(a['ID'] || '') + '" data-ad-title="' + esc(a['Заголовок'] || '') + '">🗑 Удалить</button>'
+      + '<div class="delAdConfirm" style="display:none;"></div>'
+      + '</div>').join('') : '<div class="card"><p>Объявлений пока нет</p></div>');
     content.innerHTML = html;
 
     document.getElementById('showAddAdBtn').onclick = () => {
@@ -270,6 +290,9 @@ function show(page) {
   content.querySelectorAll('.joinBtn').forEach(btn => {
     btn.onclick = () => join(btn.dataset.event, btn);
   });
+  content.querySelectorAll('.delAdBtn').forEach(btn => {
+    btn.onclick = () => deleteAd(btn.dataset.adId, btn.dataset.adTitle, btn);
+  });
   content.querySelectorAll('[data-goto]').forEach(btn => {
     btn.onclick = () => show(btn.dataset.goto);
   });
@@ -331,6 +354,38 @@ async function createAd() {
   } catch (err) {
     alert('Ошибка при добавлении объявления');
   }
+}
+
+// Удаление объявления: кнопка показывает встроенное подтверждение
+// с полем пароля админа (window.prompt в Telegram не работает,
+// поэтому пароль спрашиваем прямо в карточке). Удалять может
+// только админ — тот же пароль, что для публикации объявления.
+async function deleteAd(id, title, btn) {
+  if (!API_CONFIGURED) { alert('Приложение не подключено к таблице. Вставьте URL в script.js.'); return; }
+  const card = btn.closest('.card');
+  const box = card ? card.querySelector('.delAdConfirm') : null;
+  if (!box) return;
+  btn.style.display = 'none';
+  box.style.display = 'block';
+  box.innerHTML = '<p>Удалить объявление «' + esc(title) + '»?</p>'
+    + '<input type="password" placeholder="Пароль администратора">'
+    + '<button class="confirmDel">Удалить</button> '
+    + '<button class="cancelDel">Отмена</button>';
+  const input = box.querySelector('input');
+  try { input.focus(); } catch (e) { /* не критично */ }
+  box.querySelector('.cancelDel').onclick = () => { show('news'); };
+  box.querySelector('.confirmDel').onclick = async () => {
+    const secret = input.value;
+    if (!secret) { alert('Введите пароль администратора'); return; }
+    try {
+      await postPayload({ action: 'deleteAd', id: id, secret: secret });
+      alert('Объявление удалено! Обновляем...');
+      setTimeout(loadData, 1200);
+    } catch (err) {
+      alert('Ошибка при удалении объявления');
+      show('news');
+    }
+  };
 }
 
 async function joinClub() {
