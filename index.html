@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Беговой Клуб Адвокатской палаты СПб</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=2">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -21,6 +21,8 @@
 <button data-page="users">👥<br>Участники</button>
 </nav>
 
-<script src="script.js"></script>
+<!-- ?v=N — версия файлов: поднимать при КАЖДОМ изменении script.js
+     или style.css, иначе браузер покажет старые файлы из кэша. -->
+<script src="script.js?v=2"></script>
 </body>
 </html>

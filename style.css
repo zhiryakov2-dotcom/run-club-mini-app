@@ -3,6 +3,8 @@ body{font-family:Arial;background:#f5f6f8;margin:0;text-align:center;padding-bot
 button.danger{background:#fff;color:#c0392b;border:1px solid #e0a8a0}
 button.editBtn{background:transparent;color:#999;border:1px solid #e3e3e3;font-size:12px;padding:5px 12px;margin-top:10px}
 button.editBtn:active{background:#f0f0f0}
+button.delEventBtn{font-size:12px;padding:5px 12px;margin-top:10px}
+.delEventConfirm{margin-top:10px}
 .who-chip.clickable{cursor:pointer}
 .who-chip.clickable:active{background:#e2f0e6}
 #memberModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;align-items:center;justify-content:center;padding:20px;box-sizing:border-box}

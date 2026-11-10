@@ -145,7 +145,7 @@ async function loadData() {
   }
 }
 
-function eventCard(e, withJoin, withEdit) {
+function eventCard(e, withJoin, withEdit, withDelete) {
   const p = participantsOf(e['Название'] || '');
   const isRace = /забег|марафон|полумарафон/i.test((e['Тип'] || '') + ' ' + (e['Название'] || ''));
   const count = p.count ? '<p>👥 Участников: ' + p.count + '</p>' : '';
@@ -173,7 +173,10 @@ function eventCard(e, withJoin, withEdit) {
     + (e['Описание'] ? '<p class="muted">' + esc(e['Описание']) + '</p>' : '')
     + count + who
     + (withJoin ? '<button class="joinBtn" data-event="' + esc(e['Название'] || '') + '">Я участвую</button>' : '')
-    + (withEdit ? '<br><button class="editBtn" data-id="' + esc(e['ID'] || '') + '">✏️ Изменить</button>' : '')
+    + ((withEdit || withDelete) ? '<br>' : '')
+    + (withEdit ? '<button class="editBtn" data-id="' + esc(e['ID'] || '') + '">✏️ Изменить</button>' : '')
+    + (withDelete ? ' <button class="delEventBtn danger" data-id="' + esc(e['ID'] || '') + '" data-title="' + esc(e['Название'] || '') + '">🗑 Удалить</button>' : '')
+    + (withDelete ? '<div class="delEventConfirm" style="display:none;"></div>' : '')
     + '</div>';
 }
 
@@ -243,7 +246,7 @@ function show(page) {
       + '<button id="saveEventBtn">Опубликовать</button>'
       + '</div>';
 
-    html += items.length ? items.map(e => eventCard(e, true, true)).join('') : '<div class="card"><p>Событий пока нет</p></div>';
+    html += items.length ? items.map(e => eventCard(e, true, true, true)).join('') : '<div class="card"><p>Событий пока нет</p></div>';
     content.innerHTML = html;
 
     document.getElementById('showAddFormBtn').onclick = () => {
@@ -354,6 +357,9 @@ function show(page) {
   });
   content.querySelectorAll('.editBtn').forEach(btn => {
     btn.onclick = () => editEvent(btn.dataset.id, btn);
+  });
+  content.querySelectorAll('.delEventBtn').forEach(btn => {
+    btn.onclick = () => deleteEvent(btn.dataset.id, btn.dataset.title, btn);
   });
   content.querySelectorAll('.who-chip.clickable').forEach(chip => {
     chip.onclick = () => showMemberCard(chip.dataset.member);
@@ -555,6 +561,36 @@ async function deleteAd(id, title, btn) {
     } catch (err) {
       alert('Ошибка при удалении объявления');
       show('news');
+    }
+  };
+}
+
+/** Удаление события из Календаря (с паролем админа): встроенное
+ *  подтверждение внутри карточки, как у удаления объявления. */
+async function deleteEvent(id, title, btn) {
+  if (!API_CONFIGURED) { alert('Приложение не подключено к таблице. Вставьте URL в script.js.'); return; }
+  const card = btn.closest('.card');
+  const box = card ? card.querySelector('.delEventConfirm') : null;
+  if (!box) return;
+  btn.style.display = 'none';
+  box.style.display = 'block';
+  box.innerHTML = '<p>Удалить событие «' + esc(title) + '»?</p>'
+    + '<input type="password" placeholder="Пароль администратора">'
+    + '<button class="confirmDel danger">Удалить</button> '
+    + '<button class="cancelDel">Отмена</button>';
+  const input = box.querySelector('input');
+  try { input.focus(); } catch (e) { /* не критично */ }
+  box.querySelector('.cancelDel').onclick = () => { show('calendar'); };
+  box.querySelector('.confirmDel').onclick = async () => {
+    const secret = input.value;
+    if (!secret) { alert('Введите пароль администратора'); return; }
+    try {
+      await postPayload({ action: 'deleteEvent', id: id, secret: secret });
+      alert('Событие удалено! Обновляем...');
+      setTimeout(loadData, 1200);
+    } catch (err) {
+      alert('Ошибка при удалении события');
+      show('calendar');
     }
   };
 }
