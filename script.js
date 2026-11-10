@@ -153,7 +153,13 @@ function eventCard(e, withJoin, withEdit) {
     ? '<div class="who">' + p.names.map((n, i) => {
         const name = String(n).trim();
         const initial = esc(name.charAt(0) || '?').toUpperCase();
-        return '<span class="who-chip"><span class="who-avatar c' + ((i % 5) + 1) + '">' + initial + '</span>' + esc(name) + '</span>';
+        // Кликабелен только зарегистрированный участник: по имени
+        // ищем его в списке «Участники» — по клику покажем карточку.
+        const isMember = (clubData.members || []).some(m =>
+          String(m['Имя'] || '').trim().toLowerCase() === name.toLowerCase());
+        return '<span class="who-chip' + (isMember ? ' clickable' : '') + '"'
+          + (isMember ? ' data-member="' + esc(name) + '"' : '') + '>'
+          + '<span class="who-avatar c' + ((i % 5) + 1) + '">' + initial + '</span>' + esc(name) + '</span>';
       }).join('') + '</div>'
     : '';
   const dateParts = [];
@@ -173,6 +179,7 @@ function eventCard(e, withJoin, withEdit) {
 
 function show(page) {
   currentPage = page;
+  hideMemberCard();
   const content = document.getElementById('content');
   if (!clubData) return;
 
@@ -348,6 +355,9 @@ function show(page) {
   content.querySelectorAll('.editBtn').forEach(btn => {
     btn.onclick = () => editEvent(btn.dataset.id, btn);
   });
+  content.querySelectorAll('.who-chip.clickable').forEach(chip => {
+    chip.onclick = () => showMemberCard(chip.dataset.member);
+  });
   content.querySelectorAll('.delAdBtn').forEach(btn => {
     btn.onclick = () => deleteAd(btn.dataset.adId, btn.dataset.adTitle, btn);
   });
@@ -399,6 +409,42 @@ function weekdayFor(dateStr) {
   if (!p || !p.exact) return '';
   return ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота']
     [new Date(p.year, p.month, p.day).getDay()];
+}
+
+/** Карточка зарегистрированного участника — всплывающее окно
+ *  поверх текущего экрана. Открывается по клику на чип участника
+ *  под карточкой события. Закрывается крестиком или кликом по фону. */
+function showMemberCard(name) {
+  const m = (clubData.members || []).find(x =>
+    String(x['Имя'] || '').trim().toLowerCase() === String(name || '').trim().toLowerCase());
+  if (!m) return;
+  let overlay = document.getElementById('memberModal');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'memberModal';
+    document.body.appendChild(overlay);
+  }
+  const memberName = String(m['Имя'] || '').trim();
+  const initial = esc(memberName.charAt(0) || '?').toUpperCase();
+  const color = (memberName.length % 5) + 1;
+  overlay.innerHTML = '<div class="memberModalCard">'
+    + '<button class="memberModalClose">✕</button>'
+    + '<div style="text-align:center"><span class="who-avatar c' + color + '" style="width:48px;height:48px;font-size:22px">' + initial + '</span></div>'
+    + '<h3>' + esc(memberName) + '</h3>'
+    + '<p>Темп: ' + esc(m['Темп'] || '-') + ' · Цель: ' + esc(m['Цель'] || '-') + '</p>'
+    + (m['Стаж бега'] ? '<p>Бегаю: ' + esc(m['Стаж бега']) + '</p>' : '')
+    + (m['Год вступления'] ? '<p>В клубе с ' + esc(m['Год вступления']) + ' года</p>' : '')
+    + (m['Дистанции'] ? '<p>Дистанции: ' + esc(m['Дистанции']) + '</p>' : '')
+    + (m['Люблю'] ? '<p>Люблю: ' + esc(m['Люблю']) + '</p>' : '')
+    + '</div>';
+  overlay.style.display = 'flex';
+  overlay.querySelector('.memberModalClose').onclick = hideMemberCard;
+  overlay.onclick = (ev) => { if (ev.target === overlay) hideMemberCard(); };
+}
+
+function hideMemberCard() {
+  const overlay = document.getElementById('memberModal');
+  if (overlay) overlay.style.display = 'none';
 }
 
 /** Редактирование события прямо в карточке Календаря.
