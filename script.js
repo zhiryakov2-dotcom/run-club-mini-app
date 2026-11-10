@@ -145,7 +145,7 @@ async function loadData() {
   }
 }
 
-function eventCard(e, withJoin) {
+function eventCard(e, withJoin, withEdit) {
   const p = participantsOf(e['Название'] || '');
   const isRace = /забег|марафон|полумарафон/i.test((e['Тип'] || '') + ' ' + (e['Название'] || ''));
   const count = p.count ? '<p>👥 Участников: ' + p.count + '</p>' : '';
@@ -167,6 +167,7 @@ function eventCard(e, withJoin) {
     + (e['Описание'] ? '<p class="muted">' + esc(e['Описание']) + '</p>' : '')
     + count + who
     + (withJoin ? '<button class="joinBtn" data-event="' + esc(e['Название'] || '') + '">Я участвую</button>' : '')
+    + (withEdit ? '<br><button class="editBtn" data-id="' + esc(e['ID'] || '') + '">✏️ Изменить</button>' : '')
     + '</div>';
 }
 
@@ -235,7 +236,7 @@ function show(page) {
       + '<button id="saveEventBtn">Опубликовать</button>'
       + '</div>';
 
-    html += items.length ? items.map(e => eventCard(e, true)).join('') : '<div class="card"><p>Событий пока нет</p></div>';
+    html += items.length ? items.map(e => eventCard(e, true, true)).join('') : '<div class="card"><p>Событий пока нет</p></div>';
     content.innerHTML = html;
 
     document.getElementById('showAddFormBtn').onclick = () => {
@@ -344,6 +345,9 @@ function show(page) {
   content.querySelectorAll('.joinBtn').forEach(btn => {
     btn.onclick = () => join(btn.dataset.event, btn);
   });
+  content.querySelectorAll('.editBtn').forEach(btn => {
+    btn.onclick = () => editEvent(btn.dataset.id, btn);
+  });
   content.querySelectorAll('.delAdBtn').forEach(btn => {
     btn.onclick = () => deleteAd(btn.dataset.adId, btn.dataset.adTitle, btn);
   });
@@ -386,6 +390,73 @@ async function createEvent() {
   } catch (err) {
     alert('Ошибка при добавлении события');
   }
+}
+
+/** День недели по точной дате («15.02.2027» → «Понедельник»).
+ *  Для месяца без числа («Февраль 2027») возвращает пустую строку. */
+function weekdayFor(dateStr) {
+  const p = parseDateParts(dateStr);
+  if (!p || !p.exact) return '';
+  return ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота']
+    [new Date(p.year, p.month, p.day).getDay()];
+}
+
+/** Редактирование события прямо в карточке Календаря.
+ *  Открывает встроенную форму с заполненными полями; день недели
+ *  сам считается из даты, пароль администратора проверяется на сервере. */
+async function editEvent(id, btn) {
+  if (!API_CONFIGURED) { alert('Приложение не подключено к таблице. Вставьте URL в script.js.'); return; }
+  const ev = ((clubData && clubData.events) || []).find(x => String(x['ID']) === String(id));
+  if (!ev) { alert('Событие не найдено'); return; }
+  const card = btn.closest('.card');
+  if (!card) return;
+
+  card.querySelectorAll('.joinBtn, .editBtn').forEach(b => { b.style.display = 'none'; });
+  const box = document.createElement('div');
+  box.className = 'editBox';
+  box.innerHTML =
+    '<h4>Изменить событие</h4>'
+    + '<input class="edTitle" value="' + esc(ev['Название'] || '') + '" placeholder="Название">'
+    + '<input class="edType" value="' + esc(ev['Тип'] || '') + '" placeholder="Тип: Тренировка или Забег">'
+    + '<input class="edDate" value="' + esc(ev['Дата'] || '') + '" placeholder="Дата (напр. 15.02.2027 или Февраль 2027)">'
+    + '<input class="edDay" value="' + esc(ev['День недели'] || '') + '" placeholder="День недели">'
+    + '<input class="edTime" value="' + esc(ev['Время'] || '') + '" placeholder="Время (напр. 19:00)">'
+    + '<input class="edPlace" value="' + esc(ev['Место'] || '') + '" placeholder="Место">'
+    + '<input class="edDesc" value="' + esc(ev['Описание'] || '') + '" placeholder="Описание">'
+    + '<input class="edSecret" type="password" placeholder="Пароль администратора">'
+    + '<button class="saveEdit">Сохранить</button>'
+    + '<button class="cancelEdit">Отмена</button>';
+  card.appendChild(box);
+
+  const dateInput = box.querySelector('.edDate');
+  const dayInput = box.querySelector('.edDay');
+  dateInput.onchange = () => { dayInput.value = weekdayFor(dateInput.value.trim()); };
+
+  box.querySelector('.saveEdit').onclick = async () => {
+    const title = box.querySelector('.edTitle').value.trim();
+    const secret = box.querySelector('.edSecret').value;
+    if (!title) { alert('Укажите название!'); return; }
+    if (!secret) { alert('Введите пароль администратора'); return; }
+    const date = dateInput.value.trim();
+    try {
+      await postPayload({
+        action: 'editEvent', id: id,
+        title: title,
+        type: box.querySelector('.edType').value.trim(),
+        date: date,
+        dayOfWeek: weekdayFor(date),
+        time: box.querySelector('.edTime').value.trim(),
+        place: box.querySelector('.edPlace').value.trim(),
+        description: box.querySelector('.edDesc').value.trim(),
+        secret: secret
+      });
+      alert('Сохранено! Обновляем...');
+      setTimeout(loadData, 1500);
+    } catch (err) {
+      alert('Ошибка при сохранении');
+    }
+  };
+  box.querySelector('.cancelEdit').onclick = () => { show('calendar'); };
 }
 
 async function createAd() {
