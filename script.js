@@ -125,6 +125,7 @@ async function loadData() {
 
 function eventCard(e, withJoin) {
   const p = participantsOf(e['Название'] || '');
+  const isRace = /забег|марафон|полумарафон/i.test((e['Тип'] || '') + ' ' + (e['Название'] || ''));
   const count = p.count ? '<p>👥 Участников: ' + p.count + '</p>' : '';
   const who = (p.names && p.names.length)
     ? '<div class="who">' + p.names.map((n, i) => {
@@ -134,7 +135,7 @@ function eventCard(e, withJoin) {
       }).join('') + '</div>'
     : '';
   return '<div class="card">'
-    + '<h3>' + esc(e['Название'] || 'Тренировка') + '</h3>'
+    + '<h3>' + (isRace ? '🏅 ' : '') + esc(e['Название'] || 'Тренировка') + '</h3>'
     + '<p>' + esc(e['День недели'] || '') + (e['Дата'] ? ' · ' + esc(e['Дата']) : '') + (e['Время'] ? ' · ' + esc(e['Время']) : '') + '</p>'
     + (e['Место'] ? '<p>📍 ' + esc(e['Место']) + '</p>' : '')
     + (e['Описание'] ? '<p class="muted">' + esc(e['Описание']) + '</p>' : '')
@@ -180,7 +181,14 @@ function show(page) {
     content.innerHTML = html;
   }
   else if (page === 'calendar') {
-    const items = sortedEventsDesc();
+    // Прошедшие события в календаре не показываем: дата прошла —
+    // событие ушло из календаря (в таблице оно остаётся).
+    // События без даты показываем всегда.
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const items = sortedEventsDesc().filter(e => {
+      const d = parseDate(e['Дата']);
+      return !d || d >= today;
+    });
     let html = '<h2>📅 Календарь</h2>'
       + '<div class="card"><button id="showAddFormBtn" class="green">+ Добавить тренировку</button></div>'
       + '<div id="addEventForm" style="display:none;" class="card">'
