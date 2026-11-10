@@ -38,11 +38,48 @@ function esc(value) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-// Дата в таблице — в виде «15.10.2026». Парсим для сортировки.
+// Дата в таблице — точная («15.10.2026») или только месяц
+// («Февраль 2027»). parseDate — дата для сортировки: у месяца
+// это 1-е число, поэтому забег без точной даты встаёт в свой месяц.
+// parseUntil — дата, до которой событие показывается: у точной
+// даты — она сама, у месяца — его последний день, поэтому такой
+// забег не исчезает в начале месяца, а живёт до его конца.
+function parseDateParts(str) {
+  const s = String(str || '');
+  const m = s.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+  if (m) return { year: +m[3], month: +m[2] - 1, day: +m[1], exact: true };
+  const low = s.toLowerCase();
+  // Основы названий месяцев — ловят и «февраль», и «февраля».
+  const stems = [['январ', 0], ['феврал', 1], ['март', 2], ['апрел', 3],
+    ['май', 4], ['мая', 4], ['июн', 5], ['июл', 6], ['август', 7],
+    ['сентябр', 8], ['октябр', 9], ['ноябр', 10], ['декабр', 11]];
+  for (let i = 0; i < stems.length; i++) {
+    if (low.indexOf(stems[i][0]) !== -1) {
+      const mo = stems[i][1];
+      const ym = s.match(/(\d{4})/);
+      let year;
+      if (ym) year = +ym[1];
+      else {
+        const now = new Date();
+        year = mo >= now.getMonth() ? now.getFullYear() : now.getFullYear() + 1;
+      }
+      return { year: year, month: mo, day: 1, exact: false };
+    }
+  }
+  return null;
+}
+
 function parseDate(str) {
-  const m = String(str || '').match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
-  if (!m) return null;
-  const d = new Date(+m[3], +m[2] - 1, +m[1]);
+  const p = parseDateParts(str);
+  if (!p) return null;
+  const d = new Date(p.year, p.month, p.day);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function parseUntil(str) {
+  const p = parseDateParts(str);
+  if (!p) return null;
+  const d = p.exact ? new Date(p.year, p.month, p.day) : new Date(p.year, p.month + 1, 0);
   return isNaN(d.getTime()) ? null : d;
 }
 
@@ -119,9 +156,13 @@ function eventCard(e, withJoin) {
         return '<span class="who-chip"><span class="who-avatar c' + ((i % 5) + 1) + '">' + initial + '</span>' + esc(name) + '</span>';
       }).join('') + '</div>'
     : '';
+  const dateParts = [];
+  if (e['День недели']) dateParts.push(esc(e['День недели']));
+  if (e['Дата']) dateParts.push(esc(e['Дата']));
+  if (e['Время']) dateParts.push(esc(e['Время']));
   return '<div class="card">'
     + '<h3>' + (isRace ? '🏅 ' : '') + esc(e['Название'] || 'Тренировка') + '</h3>'
-    + '<p>' + esc(e['День недели'] || '') + (e['Дата'] ? ' · ' + esc(e['Дата']) : '') + (e['Время'] ? ' · ' + esc(e['Время']) : '') + '</p>'
+    + (dateParts.length ? '<p>' + dateParts.join(' · ') + '</p>' : '')
     + (e['Место'] ? '<p>📍 ' + esc(e['Место']) + '</p>' : '')
     + (e['Описание'] ? '<p class="muted">' + esc(e['Описание']) + '</p>' : '')
     + count + who
@@ -141,7 +182,7 @@ function show(page) {
   if (page === 'home') {
     const events = sortedEvents();
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const upcoming = events.filter(e => { const d = parseDate(e['Дата']); return !d || d >= today; });
+    const upcoming = events.filter(e => { const d = parseUntil(e['Дата']); return !d || d >= today; });
     const next = upcoming[0] || events[0] || null;
     const race = upcoming.find(e => /забег|марафон|полумарафон|старт/i.test((e['Тип'] || '') + ' ' + (e['Название'] || '')));
     const relays = clubData.relays || [];
@@ -169,12 +210,14 @@ function show(page) {
     // Календарь — по порядку дат: ближайшие сверху, самые поздние
     // внизу. Добавленное вручную событие встаёт между другими
     // по своей дате — порядок не зависит от того, когда его добавили.
+    // Забег без точной даты («Февраль 2027») встаёт в свой месяц.
     // Прошедшие события не показываем: дата прошла — событие ушло
-    // из календаря (в таблице оно остаётся). События без даты
+    // из календаря (в таблице оно остаётся). Забег с месяцем без
+    // числа живёт до конца этого месяца. События совсем без даты
     // показываем всегда, они идут последними.
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const items = sortedEvents().filter(e => {
-      const d = parseDate(e['Дата']);
+      const d = parseUntil(e['Дата']);
       return !d || d >= today;
     });
     let html = '<h2>📅 Календарь</h2>'
