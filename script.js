@@ -57,6 +57,21 @@ function sortedEvents() {
   });
 }
 
+// Календарь — новые сверху, как объявления: сначала по дате
+// (свежие раньше), а внутри одной даты — позже добавленные раньше.
+// Главная при этом по-прежнему берёт ближайшую тренировку
+// из sortedEvents() и не меняется.
+function sortedEventsDesc() {
+  const items = (clubData && clubData.events) || [];
+  return items.map((e, i) => ({ e: e, i: i })).sort((x, y) => {
+    const dx = parseDate(x.e['Дата']), dy = parseDate(y.e['Дата']);
+    if (dx && dy && dx - dy !== 0) return dy - dx;
+    if (dx && !dy) return -1;
+    if (!dx && dy) return 1;
+    return y.i - x.i;
+  }).map(o => o.e);
+}
+
 // Объявления — новые сверху: сначала по дате (свежие раньше),
 // а внутри одной даты — позже добавленные раньше.
 function sortedAds() {
@@ -165,7 +180,7 @@ function show(page) {
     content.innerHTML = html;
   }
   else if (page === 'calendar') {
-    const items = sortedEvents();
+    const items = sortedEventsDesc();
     let html = '<h2>📅 Календарь</h2>'
       + '<div class="card"><button id="showAddFormBtn" class="green">+ Добавить тренировку</button></div>'
       + '<div id="addEventForm" style="display:none;" class="card">'
